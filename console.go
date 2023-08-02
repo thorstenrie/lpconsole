@@ -28,15 +28,16 @@ type Help struct {
 }
 
 type runner struct {
-	help *Help
-	cmds map[string]*Command
-	exit *Command
+	help  *Help
+	cmds  map[string]*Command
+	exit  *Command
+	stdin *os.File
 }
 
 var (
 	help     = "help"
 	helptext = "Print usage statement"
-	run      = runner{cmds: make(map[string]*Command)}
+	run      = runner{cmds: make(map[string]*Command), stdin: os.Stdin}
 )
 
 func Usage(h *Help) error {
@@ -139,7 +140,7 @@ func Run(ctx context.Context) error {
 
 // input scans Stdin and sends the input to the string channel chin. It sends an error to the error channel chstop, if any.
 func input(ctx context.Context, chin chan string, chstop chan error) {
-	s := bufio.NewScanner(os.Stdin)
+	s := bufio.NewScanner(run.stdin)
 	for s.Scan() {
 		chin <- s.Text()
 		select {
@@ -155,6 +156,14 @@ func input(ctx context.Context, chin chan string, chstop chan error) {
 	}
 	close(chstop)
 	close(chin)
+}
+
+func SetInput(in *os.File) error {
+	if in == nil {
+		return tserr.NilPtr()
+	}
+	run.stdin = in
+	return nil
 }
 
 // split splits line l into the command name and its arguments.
@@ -175,7 +184,7 @@ func output(format string, a ...any) error {
 
 func find(cmd string) (*Command, error) {
 	if f, ok := run.cmds[cmd]; ok {
-		return f, tserr.NilPtr()
+		return f, nil
 	}
 	return nil, tserr.NotExistent(cmd)
 }
