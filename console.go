@@ -146,7 +146,7 @@ func input(ctx context.Context, chin chan string, chstop chan error) {
 		select {
 		case <-ctx.Done():
 			// Break for loop in case context is done.
-			break
+			break //TODO: Is this really effective???
 		default:
 			// If the context is not done, scan next token.
 		}
